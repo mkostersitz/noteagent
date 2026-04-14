@@ -53,8 +53,14 @@ noteagent config --device "Device"  # Set default device
 
 ## Uninstall
 
+### macOS / Linux
 ```bash
 ./uninstall.sh
+```
+
+### Windows
+```cmd
+uninstall.bat
 ```
 
 Preserves: config and session data

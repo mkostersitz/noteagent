@@ -206,17 +206,27 @@ curl -fSL -o ~/.noteagent/models/base.en.pt \
 
 ## Uninstalling
 
-To uninstall NoteAgent:
+### macOS / Linux
 
 ```bash
 ./uninstall.sh
 ```
 
+### Windows
+
+```cmd
+uninstall.bat
+```
+
+### What Gets Removed
+
 This removes:
 - Installation directory (`~/.noteagent`)
-- Launcher script (`~/.local/bin/noteagent`)
+- Launcher script (`~/.local/bin/noteagent` on Unix, `~/.noteagent/noteagent.bat` on Windows)
 
-This preserves (you can delete manually if desired):
+### What Gets Preserved
+
+These are kept (you can delete manually if desired):
 - Configuration (`~/.config/noteagent`)
 - Your sessions and recordings (`~/notes/noteagent`)
 
