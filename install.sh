@@ -158,15 +158,39 @@ install_python_dependencies() {
 copy_source_files() {
     log_info "Copying source files to installation directory..."
     
-    # Copy the entire noteagent directory to install location
-    cp -r "$TEMP_DIR/noteagent" "$INSTALL_DIR/src"
+    # Ensure src directory exists
+    mkdir -p "$INSTALL_DIR/src"
     
-    log_success "Source files copied to $INSTALL_DIR/src"
+    # Verify source exists
+    if [ ! -d "$TEMP_DIR/noteagent" ]; then
+        log_error "Source directory $TEMP_DIR/noteagent not found"
+        exit 1
+    fi
+    
+    # Copy the entire noteagent directory to install location
+    cp -r "$TEMP_DIR/noteagent" "$INSTALL_DIR/src/"
+    
+    # Verify copy succeeded
+    if [ ! -d "$INSTALL_DIR/src/noteagent" ]; then
+        log_error "Failed to copy source files to $INSTALL_DIR/src/noteagent"
+        exit 1
+    fi
+    
+    log_success "Source files copied to $INSTALL_DIR/src/noteagent"
 }
 
 build_rust_extension() {
     log_info "Building Rust audio extension..."
     source "$VENV_DIR/bin/activate"
+    
+    # Verify directory exists before changing to it
+    if [ ! -d "$INSTALL_DIR/src/noteagent/noteagent-audio" ]; then
+        log_error "Rust audio directory not found at $INSTALL_DIR/src/noteagent/noteagent-audio"
+        log_error "Contents of $INSTALL_DIR/src/noteagent:"
+        ls -la "$INSTALL_DIR/src/noteagent" 2>&1 || echo "Directory doesn't exist"
+        exit 1
+    fi
+    
     cd "$INSTALL_DIR/src/noteagent/noteagent-audio"
     
     # Build the Rust extension
