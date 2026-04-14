@@ -1,0 +1,15 @@
+[package]
+name = "noteagent-audio"
+version = "0.1.6"
+edition = "2021"
+
+[lib]
+name = "noteagent_audio"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28", features = ["extension-module"] }
+cpal = "0.15"
+hound = "3.5"
+ringbuf = "0.4"
+thiserror = "2"

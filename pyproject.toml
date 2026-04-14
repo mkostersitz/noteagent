@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "noteagent"
+version = "0.1.6"
+description = "Speech-to-text note-taking agent with live transcription, LLM summarization, and multi-format export"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "typer>=0.9",
+    "rich>=13.0",
+    "pydantic>=2.0",
+    "openai-whisper>=20231117",
+    "truststore>=0.9",
+    "tomli>=2.0; python_version < '3.11'",
+    "tomli-w>=1.0",
+    "fpdf2>=2.7",
+    "webvtt-py>=0.5",
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.20",
+    "websockets>=11.0",
+    "slowapi>=0.1.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "maturin>=1.0",
+]
+
+[project.scripts]
+noteagent = "noteagent.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/noteagent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

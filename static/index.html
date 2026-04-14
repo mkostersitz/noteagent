@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteAgent</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><strong>NoteAgent</strong></li>
+      </ul>
+      <ul>
+        <li><a href="#" class="tab-link active" data-tab="dashboard">Dashboard</a></li>
+        <li><a href="#" class="tab-link" data-tab="sessions">Sessions</a></li>
+        <li><a href="#" class="tab-link" data-tab="settings">Settings</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- ========== DASHBOARD ========== -->
+    <section id="tab-dashboard" class="tab-content active">
+      <div class="grid">
+        <div>
+          <label for="device-select">Device</label>
+          <select id="device-select"></select>
+        </div>
+        <div>
+          <label for="model-select">Model</label>
+          <select id="model-select">
+            <option value="tiny.en">tiny.en</option>
+            <option value="base.en" selected>base.en</option>
+            <option value="small.en">small.en</option>
+            <option value="medium.en">medium.en</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label>
+            <input type="checkbox" id="meeting-mode" role="switch">
+            Meeting Mode (dual-channel)
+          </label>
+        </div>
+        <div id="system-device-group" style="display:none;">
+          <label for="system-device-select">System Audio Device</label>
+          <select id="system-device-select"></select>
+        </div>
+      </div>
+
+      <div class="recording-controls">
+        <button id="btn-record" class="record-btn">&#9679; Start Recording</button>
+        <span id="timer" class="timer">00:00:00</span>
+      </div>
+
+      <article id="live-panel">
+        <header>
+          <span>Live Transcript</span>
+          <span id="live-status-badge" class="live-status-badge idle">Idle</span>
+        </header>
+        <div id="live-transcript" class="transcript-area">
+          <p class="placeholder">Press Start Recording to begin...</p>
+        </div>
+      </article>
+
+      <!-- Post-recording actions (hidden until a recording completes) -->
+      <article id="post-recording" class="post-recording" style="display:none;">
+        <header>Last Recording: <span id="post-session-id"></span></header>
+        <div id="post-transcript" class="transcript-area"></div>
+        <div class="post-actions">
+          <button class="outline" id="btn-post-summarize">Generate Summary</button>
+          <button class="outline secondary" id="btn-post-view">Open Full Session</button>
+        </div>
+        <div id="post-summary" class="summary-area" style="display:none;"></div>
+      </article>
+
+      <div class="stats" id="quick-stats"></div>
+    </section>
+
+    <!-- ========== SESSIONS ========== -->
+    <section id="tab-sessions" class="tab-content">
+      <div class="sessions-header">
+        <h2>Sessions</h2>
+        <input type="search" id="session-search" placeholder="Search sessions...">
+      </div>
+
+      <table id="sessions-table" role="grid">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Duration</th>
+            <th>Device</th>
+            <th>Segments</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sessions-body"></tbody>
+      </table>
+
+      <!-- Session detail panel -->
+      <dialog id="session-detail-dialog">
+        <article class="session-detail-article">
+          <header>
+            <button class="close-btn" aria-label="Close" rel="prev" id="close-detail">&times;</button>
+            <span id="detail-title">Session</span>
+          </header>
+
+          <div id="detail-media-section">
+            <div id="detail-media-meta" class="media-meta"></div>
+            <div id="detail-media-container"></div>
+          </div>
+
+          <details open>
+            <summary>Transcript</summary>
+            <div id="detail-transcript" class="transcript-area"></div>
+            <div class="detail-actions">
+              <button class="outline secondary" onclick="copyTranscript()">Copy</button>
+            </div>
+          </details>
+
+          <details>
+            <summary>Summary</summary>
+            <div id="detail-summary" class="summary-area"></div>
+            <div class="detail-actions">
+              <select id="summary-style-select">
+                <option value="general">General</option>
+                <option value="meeting">Meeting</option>
+                <option value="lecture">Lecture</option>
+              </select>
+              <button class="outline" id="btn-summarize">Generate Summary</button>
+              <button class="outline secondary" onclick="copySummary()">Copy</button>
+            </div>
+          </details>
+
+          <details>
+            <summary>Export</summary>
+            <div class="export-buttons">
+              <button class="outline" onclick="exportSession('markdown')">Markdown</button>
+              <button class="outline" onclick="exportSession('text')">Text</button>
+              <button class="outline" onclick="exportSession('json')">JSON</button>
+              <button class="outline" onclick="exportSession('srt')">SRT</button>
+              <button class="outline" onclick="exportSession('vtt')">VTT</button>
+              <button class="outline" onclick="exportSession('pdf')">PDF</button>
+            </div>
+          </details>
+
+          <details>
+            <summary>Files</summary>
+            <div class="file-actions">
+              <div class="file-row">
+                <strong>Session Folder</strong>
+                <code id="detail-session-path"></code>
+                <button class="outline secondary" onclick="revealSessionPath()">Reveal</button>
+              </div>
+              <div class="file-row" id="detail-source-row" hidden>
+                <strong>Source File</strong>
+                <code id="detail-source-path"></code>
+                <button class="outline secondary" onclick="revealSourcePath()">Reveal</button>
+              </div>
+            </div>
+          </details>
+        </article>
+      </dialog>
+    </section>
+
+    <!-- ========== SETTINGS ========== -->
+    <section id="tab-settings" class="tab-content">
+      <h2>Settings</h2>
+      <p id="settings-version" class="settings-version">Version: —</p>
+
+      <form id="settings-form">
+        <fieldset>
+          <legend>Audio</legend>
+          <label for="cfg-device">Default Device</label>
+          <select id="cfg-device"></select>
+          <label for="cfg-sample-rate">Sample Rate</label>
+          <input type="number" id="cfg-sample-rate" value="16000">
+        </fieldset>
+
+        <fieldset>
+          <legend>Transcription</legend>
+          <label for="cfg-model">Whisper Model</label>
+          <select id="cfg-model">
+            <option value="tiny.en">tiny.en</option>
+            <option value="base.en">base.en</option>
+            <option value="small.en">small.en</option>
+            <option value="medium.en">medium.en</option>
+          </select>
+          <label for="cfg-language">Language</label>
+          <input type="text" id="cfg-language" value="en">
+        </fieldset>
+
+        <fieldset>
+          <legend>Summary</legend>
+          <label for="cfg-provider">Provider</label>
+          <select id="cfg-provider">
+            <option value="copilot">copilot</option>
+          </select>
+          <label for="cfg-style">Default Style</label>
+          <select id="cfg-style">
+            <option value="general">General</option>
+            <option value="meeting">Meeting</option>
+            <option value="lecture">Lecture</option>
+          </select>
+        </fieldset>
+
+        <fieldset>
+          <legend>Storage</legend>
+          <label for="cfg-storage">Storage Path</label>
+          <input type="text" id="cfg-storage">
+        </fieldset>
+
+        <button type="submit">Save Settings</button>
+      </form>
+      <div id="settings-toast" class="toast" role="alert"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+
+</html>

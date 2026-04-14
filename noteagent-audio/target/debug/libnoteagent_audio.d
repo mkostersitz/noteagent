@@ -1,0 +1,1 @@
+/Users/mikek/repos/noteagent/noteagent-audio/target/debug/libnoteagent_audio.dylib: /Users/mikek/repos/noteagent/noteagent-audio/src/capture.rs /Users/mikek/repos/noteagent/noteagent-audio/src/device.rs /Users/mikek/repos/noteagent/noteagent-audio/src/error.rs /Users/mikek/repos/noteagent/noteagent-audio/src/lib.rs

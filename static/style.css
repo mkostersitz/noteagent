@@ -1,0 +1,356 @@
+/* NoteAgent — custom styles on top of Pico CSS */
+
+/* Tab navigation */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tab-link {
+  cursor: pointer;
+}
+
+.tab-link.active {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* Recording controls */
+.recording-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.record-btn {
+  font-size: 1.1rem;
+  padding: 0.75rem 2rem;
+  min-width: 220px;
+}
+
+.record-btn.recording {
+  background-color: var(--pico-del-color, #c62828);
+  border-color: var(--pico-del-color, #c62828);
+}
+
+.timer {
+  font-family: monospace;
+  font-size: 1.6rem;
+  color: var(--pico-muted-color);
+}
+
+.timer.active {
+  color: var(--pico-del-color, #c62828);
+}
+
+/* Transcript area */
+#live-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.live-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-status-badge.idle {
+  background: rgba(107, 114, 128, 0.15);
+  color: #4b5563;
+}
+
+.live-status-badge.connecting {
+  background: rgba(2, 132, 199, 0.16);
+  color: #0369a1;
+}
+
+.live-status-badge.live {
+  background: rgba(22, 163, 74, 0.16);
+  color: #15803d;
+}
+
+.live-status-badge.error {
+  background: rgba(220, 38, 38, 0.16);
+  color: #b91c1c;
+}
+
+.transcript-area {
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  padding: 0.5rem;
+}
+
+.transcript-area .seg {
+  margin-bottom: 0.4rem;
+}
+
+.transcript-area .seg-time {
+  font-weight: 600;
+  color: var(--pico-primary);
+  margin-right: 0.5rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.seg-speaker {
+  font-weight: 700;
+  margin-right: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.speaker-you {
+  color: #22863a;
+}
+
+.speaker-remote {
+  color: #6f42c1;
+}
+
+.placeholder {
+  color: var(--pico-muted-color);
+  font-style: italic;
+}
+
+/* Stats bar */
+.stats {
+  font-size: 0.9rem;
+  color: var(--pico-muted-color);
+  margin-top: 1rem;
+}
+
+/* Sessions */
+.sessions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sessions-header h2 {
+  margin-bottom: 0;
+}
+
+.sessions-header input[type="search"] {
+  max-width: 250px;
+  margin-bottom: 0;
+}
+
+#sessions-table td,
+#sessions-table th {
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  font-size: 1rem;
+  margin: 0 0.1rem;
+  color: var(--pico-primary);
+}
+
+.action-btn:hover {
+  opacity: 0.7;
+}
+
+/* Session detail dialog */
+#session-detail-dialog {
+  max-width: 800px;
+  width: 90vw;
+}
+
+.session-detail-article header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+
+.detail-actions button {
+  margin-bottom: 0;
+}
+
+.detail-actions select {
+  margin-bottom: 0;
+  max-width: 150px;
+}
+
+.export-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.export-buttons button {
+  margin-bottom: 0;
+}
+
+.summary-area {
+  min-height: 60px;
+  white-space: pre-wrap;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+#detail-media-player {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.media-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.media-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--pico-primary);
+  color: var(--pico-primary);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.media-file {
+  color: var(--pico-muted-color);
+  font-size: 0.9rem;
+}
+
+.media-origin {
+  color: var(--pico-muted-color);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.media-empty-state {
+  border: 1px dashed var(--pico-muted-border-color, #c9d1d9);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--pico-card-background-color, rgba(0, 0, 0, 0.02));
+}
+
+.media-empty-state strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.media-empty-state p {
+  margin-bottom: 0;
+  color: var(--pico-muted-color);
+}
+
+.file-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.file-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.file-row code {
+  display: block;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  background: var(--pico-code-background-color, rgba(0, 0, 0, 0.04));
+  overflow-wrap: anywhere;
+}
+
+.file-row button {
+  justify-self: start;
+  margin-bottom: 0;
+}
+
+/* Toast notification */
+.settings-version {
+  color: var(--pico-muted-color);
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  background: var(--pico-primary);
+  color: #fff;
+  font-size: 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 999;
+}
+
+.toast.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Post-recording section */
+.post-recording {
+  margin-top: 1rem;
+}
+
+.post-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.post-actions button {
+  margin-bottom: 0;
+}
+
+/* Clickable session rows */
+#sessions-body tr {
+  cursor: pointer;
+}
+
+#sessions-body tr:hover {
+  background: var(--pico-secondary-focus, rgba(0, 0, 0, 0.04));
+}
