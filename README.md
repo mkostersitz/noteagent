@@ -44,11 +44,39 @@ Speech-to-text note-taking agent with live transcription, LLM summarization, and
 
 ---
 
-## Quick Start
+## Installation
+
+### Quick Install (Recommended)
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/mkostersitz/noteagent/main/install.sh | bash
+```
+
+**Windows:**
+```cmd
+git clone https://github.com/mkostersitz/noteagent.git
+cd noteagent
+install.bat
+```
+
+The automated installer handles everything:
+- ✅ Checks prerequisites (Python 3.10+, Rust, Git)
+- ✅ Builds Rust audio extension
+- ✅ Installs Python package and dependencies
+- ✅ Downloads Whisper model (~140 MB)
+- ✅ Creates launcher scripts for CLI and Web UI
+- ✅ Sets up default configuration
+
+📖 See [INSTALL.md](docs/INSTALL.md) for detailed installation instructions, troubleshooting, and customization options.
+
+### Development Setup
+
+For development work:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-org>/noteagent.git
+git clone https://github.com/mkostersitz/noteagent.git
 cd noteagent
 
 # 2. Run the full setup (creates venv, builds Rust extension, installs Python package, downloads Whisper model)
@@ -61,12 +89,7 @@ source .venv/bin/activate
 noteagent --help
 ```
 
-That's it. The `make setup` command handles everything:
-
-- Creates a Python virtual environment in `.venv/`
-- Builds the Rust audio capture extension via maturin
-- Installs the Python package with all dependencies
-- Downloads the Whisper `base.en` model (~140 MB) from OpenAI's CDN
+This creates a local `.venv` in the project directory for development.
 
 ---
 
@@ -159,9 +182,9 @@ limit = "200/minute"
 
 ---
 
-## Manual Setup (step by step)
+## Manual Setup (Advanced)
 
-If you prefer not to use `make`, or are on Windows:
+If you need manual control over the installation process (not recommended for most users):
 
 ### 1. Create a virtual environment
 

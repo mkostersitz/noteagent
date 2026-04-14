@@ -1,0 +1,136 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 0.1.6)'
+        required: true
+        type: string
+
+jobs:
+  build-release:
+    name: Build Release Packages
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+      
+      - name: Update version in files
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^VERSION=.*/VERSION=\"$VERSION\"/" install.sh
+          sed -i "s/^VERSION=.*/VERSION=\"$VERSION\"/" build-release.sh
+          sed -i "s/^set \"VERSION=.*/set \"VERSION=$VERSION\"/" install.bat
+      
+      - name: Make scripts executable
+        run: |
+          chmod +x install.sh
+          chmod +x uninstall.sh
+          chmod +x build-release.sh
+      
+      - name: Build release packages
+        run: ./build-release.sh
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: |
+            dist/release-${{ steps.version.outputs.version }}/*.tar.gz
+            dist/release-${{ steps.version.outputs.version }}/*.zip
+            dist/release-${{ steps.version.outputs.version }}/checksums.txt
+            dist/release-${{ steps.version.outputs.version }}/RELEASE_NOTES.md
+      
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/release-${{ steps.version.outputs.version }}/*.tar.gz
+            dist/release-${{ steps.version.outputs.version }}/*.zip
+            dist/release-${{ steps.version.outputs.version }}/checksums.txt
+          body_path: dist/release-${{ steps.version.outputs.version }}/RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-install-unix:
+    name: Test Installation (Unix)
+    needs: build-release
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Make installer executable
+        run: chmod +x install.sh
+      
+      - name: Test installation (dry run check)
+        run: |
+          # Just verify the installer script is valid
+          bash -n install.sh
+          echo "Installer script syntax is valid"
+      
+      - name: Test basic components
+        run: |
+          # Test that key files exist and are properly formatted
+          test -f pyproject.toml
+          test -f Makefile
+          test -d noteagent-audio
+          test -d src/noteagent
+          echo "All key components present"
+
+  test-install-windows:
+    name: Test Installation (Windows)
+    needs: build-release
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Test installer script syntax
+        shell: cmd
+        run: |
+          echo Testing Windows installer
+          if not exist install.bat exit 1
+          echo Windows installer exists

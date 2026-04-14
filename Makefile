@@ -1,4 +1,4 @@
-.PHONY: help setup venv rust python model build clean test serve
+.PHONY: help setup venv rust python model build clean test serve release
 
 PYTHON   ?= python3
 VENV     := .venv
@@ -71,3 +71,8 @@ clean: ## Remove build artifacts (keeps venv and models)
 distclean: clean ## Full clean including venv and downloaded models
 	rm -rf $(VENV) models/*.pt
 	@echo "✔ Removed virtual environment and models."
+
+# ── Release ──────────────────────────────────────────────────────────
+
+release: ## Build release packages for distribution
+	./build-release.sh
