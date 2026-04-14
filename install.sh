@@ -155,10 +155,19 @@ install_python_dependencies() {
     log_success "Base dependencies installed"
 }
 
+copy_source_files() {
+    log_info "Copying source files to installation directory..."
+    
+    # Copy the entire noteagent directory to install location
+    cp -r "$TEMP_DIR/noteagent" "$INSTALL_DIR/src"
+    
+    log_success "Source files copied to $INSTALL_DIR/src"
+}
+
 build_rust_extension() {
     log_info "Building Rust audio extension..."
     source "$VENV_DIR/bin/activate"
-    cd "$TEMP_DIR/noteagent/noteagent-audio"
+    cd "$INSTALL_DIR/src/noteagent/noteagent-audio"
     
     # Build the Rust extension
     maturin develop --release
@@ -169,9 +178,9 @@ build_rust_extension() {
 install_noteagent() {
     log_info "Installing NoteAgent Python package..."
     source "$VENV_DIR/bin/activate"
-    cd "$TEMP_DIR/noteagent"
+    cd "$INSTALL_DIR/src/noteagent"
     
-    # Install the package
+    # Install the package in editable mode from permanent location
     pip install -e ".[dev]" --quiet
     
     log_success "NoteAgent package installed"
@@ -215,15 +224,6 @@ EOF
     
     chmod +x "$BIN_DIR/noteagent"
     log_success "Launcher script created at $BIN_DIR/noteagent"
-}
-
-copy_static_files() {
-    log_info "Copying static files and models..."
-    
-    # Copy the entire noteagent directory to install location
-    cp -r "$TEMP_DIR/noteagent" "$INSTALL_DIR/src"
-    
-    log_success "Files copied to $INSTALL_DIR/src"
 }
 
 create_config() {
@@ -332,12 +332,12 @@ main() {
     check_macos_dependencies
     create_directories
     clone_repository
+    copy_source_files
     create_venv
     install_python_dependencies
     build_rust_extension
     install_noteagent
     download_whisper_model "base.en"
-    copy_static_files
     create_launcher_script
     create_config
     check_path
