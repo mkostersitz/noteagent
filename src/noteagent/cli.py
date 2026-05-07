@@ -55,22 +55,32 @@ def _collect_batch_media_files(folder: Path) -> list[Path]:
 
 @app.command()
 def record(
-    device: Optional[str] = typer.Option(None, "--device", "-d", help="Audio device name (mic in meeting mode)"),
+    device: Optional[str] = typer.Option(None, "--device", "-d", help="Audio device name or index from 'noteagent devices' (mic in meeting mode)"),
     output_dir: Optional[Path] = typer.Option(None, "--output-dir", "-o", help="Override storage path for this session"),
     live_transcript: bool = typer.Option(True, "--live-transcript/--no-live-transcript", help="Show live transcript"),
     model: str = typer.Option("base.en", "--model", "-m", help="Whisper model size"),
     meeting: bool = typer.Option(False, "--meeting", help="Dual-channel meeting mode (mic + system audio)"),
-    system_device: Optional[str] = typer.Option(None, "--system-device", help="System audio device for meeting mode (e.g. BlackHole 2ch)"),
+    system_device: Optional[str] = typer.Option(None, "--system-device", help="System audio device name or index for meeting mode (e.g. BlackHole 2ch)"),
     max_duration: int = typer.Option(3600, "--max-duration", help="Maximum recording duration in seconds (default: 3600 = 60 min)"),
 ) -> None:
     """Start recording with live transcript."""
     from noteagent.storage import create_session, load_config, save_transcript
 
+    from noteagent.audio import resolve_device
+
     config = load_config()
-    mic_device = device or config.default_device
+    try:
+        mic_device = resolve_device(device) or config.default_device
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1)
 
     if meeting:
-        sys_device = system_device or "BlackHole 2ch"
+        try:
+            sys_device = resolve_device(system_device) or "BlackHole 2ch"
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/]")
+            raise typer.Exit(1)
         _record_meeting(config, mic_device, sys_device, output_dir, live_transcript, model, max_duration)
     else:
         _record_single(config, mic_device, output_dir, live_transcript, model, max_duration)
