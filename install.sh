@@ -157,25 +157,29 @@ install_python_dependencies() {
 
 copy_source_files() {
     log_info "Copying source files to installation directory..."
-    
-    # Ensure src directory exists
+
     mkdir -p "$INSTALL_DIR/src"
-    
-    # Verify source exists
+
     if [ ! -d "$TEMP_DIR/noteagent" ]; then
         log_error "Source directory $TEMP_DIR/noteagent not found"
         exit 1
     fi
-    
-    # Copy the entire noteagent directory to install location
+
+    # Remove any previous installation to avoid permission errors from
+    # read-only git pack files (git sets .git/objects/pack/* to 0444)
+    rm -rf "$INSTALL_DIR/src/noteagent"
+
     cp -r "$TEMP_DIR/noteagent" "$INSTALL_DIR/src/"
-    
-    # Verify copy succeeded
+
+    # .git is not needed at the install location; remove it to avoid
+    # leaving read-only pack files that would break future reinstalls
+    rm -rf "$INSTALL_DIR/src/noteagent/.git"
+
     if [ ! -d "$INSTALL_DIR/src/noteagent" ]; then
         log_error "Failed to copy source files to $INSTALL_DIR/src/noteagent"
         exit 1
     fi
-    
+
     log_success "Source files copied to $INSTALL_DIR/src/noteagent"
 }
 
