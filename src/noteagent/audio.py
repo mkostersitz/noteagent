@@ -29,6 +29,27 @@ def list_devices() -> list[str]:
     return noteagent_audio.list_audio_devices()
 
 
+def resolve_device(device: Optional[str]) -> Optional[str]:
+    """Resolve a device specifier to a device name.
+
+    Accepts either a device name or a numeric index (as returned by
+    ``noteagent devices``).  Raises ``ValueError`` if an index is out of range.
+    """
+    if device is None:
+        return None
+    try:
+        index = int(device)
+    except ValueError:
+        return device  # already a name
+    devices = list_devices()
+    if index < 0 or index >= len(devices):
+        raise ValueError(
+            f"Device index {index} is out of range — "
+            f"run 'noteagent devices' to see valid indices (0–{len(devices) - 1})."
+        )
+    return devices[index]
+
+
 class Recorder:
     """Records audio to a WAV file via the Rust backend."""
 
