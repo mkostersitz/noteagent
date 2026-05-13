@@ -4,7 +4,6 @@ PYTHON   ?= python3
 VENV     := .venv
 PORT     ?= 8765
 MODEL    ?= base.en
-MODEL_URL = https://openaipublic.azureedge.net/main/whisper/models/25a8566e1d0c1e2231d1c762132cd20e0f96a85d16145c3a00adf5d1ac670ead/base.en.pt
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -32,15 +31,8 @@ python: venv ## Install the Python package in editable mode
 	. $(VENV)/bin/activate && pip install -e ".[dev]" --quiet
 	@echo "✔ Python package installed."
 
-model: ## Download the Whisper model (base.en by default)
-	@mkdir -p models
-	@if [ ! -f "models/$(MODEL).pt" ]; then \
-		echo "⬇  Downloading Whisper $(MODEL) model..."; \
-		curl -fSL -o "models/$(MODEL).pt" "$(MODEL_URL)"; \
-		echo "✔ Model saved to models/$(MODEL).pt"; \
-	else \
-		echo "  Model models/$(MODEL).pt already exists."; \
-	fi
+model: python ## Download the ggml whisper.cpp model (base.en by default)
+	. $(VENV)/bin/activate && noteagent download-model $(MODEL)
 
 build: venv rust python model ## Full build: Rust + Python + model download
 	@echo ""
@@ -69,7 +61,7 @@ clean: ## Remove build artifacts (keeps venv and models)
 	@echo "✔ Cleaned build artifacts."
 
 distclean: clean ## Full clean including venv and downloaded models
-	rm -rf $(VENV) models/*.pt
+	rm -rf $(VENV) models/*.bin models/*.pt
 	@echo "✔ Removed virtual environment and models."
 
 # ── Release ──────────────────────────────────────────────────────────

@@ -12,8 +12,6 @@ dependencies = [
     "typer>=0.9",
     "rich>=13.0",
     "pydantic>=2.0",
-    "openai-whisper>=20231117",
-    "truststore>=0.9",
     "tomli>=2.0; python_version < '3.11'",
     "tomli-w>=1.0",
     "fpdf2>=2.7",
@@ -23,6 +21,10 @@ dependencies = [
     "websockets>=11.0",
     "slowapi>=0.1.9",
 ]
+# Transcription is provided by the `noteagent-audio` extension built from
+# `crates/noteagent-py/` via maturin. It cannot be listed here because it's
+# built locally; run `make rust` (or `cd crates/noteagent-py && maturin develop`)
+# after `pip install -e .` to install it into the active venv.
 
 [project.optional-dependencies]
 dev = [
