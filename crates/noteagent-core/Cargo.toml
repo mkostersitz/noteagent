@@ -1,0 +1,23 @@
+[package]
+name = "noteagent-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Platform-agnostic core for NoteAgent: audio capture + transcription. Used by Python (PyO3), Swift (UniFFI), and direct Rust consumers."
+
+[lib]
+name = "noteagent_core"
+
+[features]
+# Default builds desktop platforms (macOS, Linux, Windows) with cpal-backed audio.
+# iOS / iPadOS builds should disable this and use PushAudioSource fed from Swift.
+default = ["cpal-backend"]
+cpal-backend = ["dep:cpal"]
+
+[dependencies]
+thiserror = { workspace = true }
+hound = { workspace = true }
+serde = { workspace = true }
+ringbuf = { workspace = true }
+cpal = { workspace = true, optional = true }
+whisper-rs = { workspace = true }

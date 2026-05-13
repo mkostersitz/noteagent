@@ -24,7 +24,7 @@ venv: ## Create Python virtual environment
 
 rust: venv ## Build the Rust audio extension (maturin develop)
 	@echo "⚙  Building Rust audio extension..."
-	. $(VENV)/bin/activate && cd noteagent-audio && maturin develop
+	. $(VENV)/bin/activate && cd crates/noteagent-py && maturin develop
 	@echo "✔ Rust extension built."
 
 python: venv ## Install the Python package in editable mode
@@ -63,7 +63,7 @@ serve: ## Start the web UI (PORT=8765)
 # ── Cleanup ──────────────────────────────────────────────────────────
 
 clean: ## Remove build artifacts (keeps venv and models)
-	rm -rf noteagent-audio/target
+	rm -rf target crates/*/target
 	rm -rf src/noteagent.egg-info dist build
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@echo "✔ Cleaned build artifacts."
