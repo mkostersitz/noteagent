@@ -40,6 +40,15 @@ final class PythonServer: ObservableObject {
         state = .starting
         url = nil
 
+        // First-launch (or post-folder-move) storage prompt. Must complete
+        // before we exec Python, since the path is passed via env.
+        guard let storage = StoragePicker.resolve() else {
+            logger.notice("Storage picker cancelled; refusing to launch server")
+            state = .failed("NoteAgent needs a folder to save your recordings and transcripts. Click Try Again to choose one.")
+            return
+        }
+        logger.notice("Storage folder: \(storage.path, privacy: .public)")
+
         // Launch strategy:
         //   1. Bundled Python under Contents/Resources/python/ (release builds)
         //   2. NOTEAGENT_BIN override / well-known dev install paths
@@ -51,11 +60,12 @@ final class PythonServer: ObservableObject {
         proc.arguments = launch.arguments
         logger.notice("Launching: \(launch.description, privacy: .public)")
 
-        // Augment PATH and set bundle-local env vars (model dir, static assets)
-        // so the Python side resolves resources inside the .app bundle rather
-        // than from the developer's working copy.
+        // Augment PATH and set bundle-local env vars (model dir, static assets,
+        // storage dir) so the Python side resolves resources inside the .app
+        // bundle and writes user data to the user-chosen folder.
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = Self.augmentedPath(existing: env["PATH"])
+        env["NOTEAGENT_STORAGE_DIR"] = storage.path
         for (k, v) in launch.extraEnv {
             env[k] = v
         }
