@@ -90,9 +90,31 @@ These belong to later phases:
 
 ## Troubleshooting
 
-| Symptom | Likely cause |
-|---------|--------------|
-| "Server did not respond within 30 s" | `noteagent` isn't on PATH for GUI apps; run Xcode from a terminal where `which noteagent` works |
-| "Could not launch `noteagent`" | Same as above, or the Python venv was deleted |
+GUI macOS apps inherit a minimal `PATH` (`/usr/bin:/bin:/usr/sbin:/sbin`),
+**not** your shell PATH. The app handles this by:
+
+1. Looking for `noteagent` at well-known paths (`~/.local/bin`, `~/.venv/bin`,
+   `/opt/homebrew/bin`, `/usr/local/bin`, etc.).
+2. Falling back to `/usr/bin/env` with an augmented `PATH` if step 1 fails.
+3. Honoring a `NOTEAGENT_BIN` environment variable as a manual override
+   (set it in Xcode → Edit Scheme → Run → Arguments → Environment Variables).
+
+| Symptom | Likely cause + fix |
+|---------|---------------------|
+| `status 127` / `env: noteagent: No such file or directory` | `noteagent` not found in any well-known location. Either `pipx install -e .` so it lands in `~/.local/bin/`, or set `NOTEAGENT_BIN` to its absolute path in the Xcode scheme. |
+| "Server did not respond within 30 s" | Process started but the FastAPI app didn't bind in time — check the Xcode console for the Python traceback. |
+| "Could not launch `noteagent`" | The resolved path isn't executable. Check `chmod +x`. |
 | Microphone permission prompt missing | First launch should prompt; re-trigger via System Settings → Privacy & Security → Microphone |
 | Hardened Runtime crash on launch | The `com.apple.security.cs.*` entitlements in `NoteAgent.entitlements` must be present (they are by default) |
+
+### Checking what the app actually did
+
+The shell forwards all process and Python output to `os.log` under the
+`com.noteagent.macos` subsystem. From Terminal:
+
+```bash
+log show --predicate 'subsystem == "com.noteagent.macos"' --last 5m --info
+```
+
+You'll see lines like `Using noteagent at /Users/you/.local/bin/noteagent`
+or `noteagent serve exited with status 127`.
