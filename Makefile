@@ -1,4 +1,4 @@
-.PHONY: help setup venv rust python model build clean test serve release bundle app app-clean
+.PHONY: help setup venv rust python model build clean test serve release bundle app app-clean sign notarize ship
 
 PYTHON   ?= python3
 VENV     := .venv
@@ -88,6 +88,25 @@ app: bundle ## Build NoteAgent.app via xcodebuild (requires full Xcode, not just
 app-clean: ## Remove app build output and bundled resources
 	rm -rf apps/macos/build apps/macos/BuiltResources
 	@echo "✔ Removed apps/macos/{build,BuiltResources}/"
+
+sign: ## Code-sign NoteAgent.app (requires DEVELOPER_ID env var)
+	@if [ -z "$$DEVELOPER_ID" ]; then \
+		echo "Set DEVELOPER_ID, e.g. DEVELOPER_ID=\"Developer ID Application: Jane Doe (TEAMID123)\""; \
+		echo "List candidates with: security find-identity -v -p codesigning"; \
+		exit 1; \
+	fi
+	./apps/macos/scripts/sign-bundle.sh
+
+notarize: ## Submit to Apple Notary + staple (requires NOTARY_PROFILE or APPLE_ID/TEAM/PASSWORD)
+	./apps/macos/scripts/notarize-bundle.sh
+
+ship: app sign notarize ## Build, sign, and notarize NoteAgent.app end-to-end
+	@echo ""
+	@echo "══════════════════════════════════════════════"
+	@echo "  ✔ NoteAgent.app is signed and notarized."
+	@echo "    Drag the .app from apps/macos/build/Build/Products/Release/"
+	@echo "    onto another Mac to verify it launches without Gatekeeper warnings."
+	@echo "══════════════════════════════════════════════"
 
 # ── Release ──────────────────────────────────────────────────────────
 
