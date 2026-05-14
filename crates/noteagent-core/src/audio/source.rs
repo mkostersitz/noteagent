@@ -115,3 +115,58 @@ impl PushHandle {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn push_source_reports_correct_sample_rate() {
+        let src = PushAudioSource::new(48_000);
+        assert_eq!(src.sample_rate(), 48_000);
+    }
+
+    #[test]
+    fn push_and_read_round_trip() {
+        let mut src = PushAudioSource::new(16_000);
+        src.push(&[0.1, 0.2, 0.3]);
+        let out = src.read_chunk().unwrap();
+        assert_eq!(out, vec![0.1, 0.2, 0.3]);
+    }
+
+    #[test]
+    fn read_returns_empty_when_no_samples_pushed() {
+        let mut src = PushAudioSource::new(16_000);
+        assert!(src.read_chunk().unwrap().is_empty());
+    }
+
+    #[test]
+    fn read_drains_buffer() {
+        let mut src = PushAudioSource::new(16_000);
+        src.push(&[1.0, 2.0]);
+        assert_eq!(src.read_chunk().unwrap(), vec![1.0, 2.0]);
+        // Second read should yield nothing — first call drained the buffer.
+        assert!(src.read_chunk().unwrap().is_empty());
+    }
+
+    #[test]
+    fn handle_pushes_samples_visible_from_source() {
+        let mut src = PushAudioSource::new(16_000);
+        let handle = src.handle();
+        // Push via the handle (simulates the Swift audio-callback thread).
+        std::thread::spawn(move || handle.push(&[0.5, 0.6, 0.7]))
+            .join()
+            .unwrap();
+        let out = src.read_chunk().unwrap();
+        assert_eq!(out, vec![0.5, 0.6, 0.7]);
+    }
+
+    #[test]
+    fn stop_releases_consumer() {
+        let mut src = PushAudioSource::new(16_000);
+        src.push(&[1.0]);
+        src.stop().unwrap();
+        // After stop, read returns empty (consumer is dropped).
+        assert!(src.read_chunk().unwrap().is_empty());
+    }
+}

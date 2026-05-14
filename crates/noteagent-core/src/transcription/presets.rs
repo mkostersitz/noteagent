@@ -74,3 +74,50 @@ impl TranscribeOptions {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preset_from_str_handles_known_values() {
+        assert_eq!(QualityPreset::from_str_ci("fast"), QualityPreset::Fast);
+        assert_eq!(QualityPreset::from_str_ci("FAST"), QualityPreset::Fast);
+        assert_eq!(QualityPreset::from_str_ci("balanced"), QualityPreset::Balanced);
+        assert_eq!(QualityPreset::from_str_ci("accurate"), QualityPreset::Accurate);
+        assert_eq!(QualityPreset::from_str_ci("Accurate"), QualityPreset::Accurate);
+    }
+
+    #[test]
+    fn preset_from_str_defaults_to_balanced_for_unknown() {
+        assert_eq!(QualityPreset::from_str_ci(""), QualityPreset::Balanced);
+        assert_eq!(QualityPreset::from_str_ci("garbage"), QualityPreset::Balanced);
+    }
+
+    #[test]
+    fn fast_preset_uses_greedy_search() {
+        let opts = TranscribeOptions::from_preset(QualityPreset::Fast, Some("en"));
+        assert_eq!(opts.beam_size, 1);
+        assert_eq!(opts.best_of, 1);
+        assert!(!opts.condition_on_previous_text);
+        assert_eq!(opts.language.as_deref(), Some("en"));
+    }
+
+    #[test]
+    fn balanced_preset_uses_beam_5() {
+        let opts = TranscribeOptions::from_preset(QualityPreset::Balanced, None);
+        assert_eq!(opts.beam_size, 5);
+        assert_eq!(opts.best_of, 5);
+        assert!(opts.condition_on_previous_text);
+        assert!(opts.language.is_none());
+    }
+
+    #[test]
+    fn accurate_preset_uses_beam_8() {
+        let opts = TranscribeOptions::from_preset(QualityPreset::Accurate, Some("de"));
+        assert_eq!(opts.beam_size, 8);
+        assert_eq!(opts.best_of, 8);
+        assert!(opts.condition_on_previous_text);
+        assert_eq!(opts.language.as_deref(), Some("de"));
+    }
+}

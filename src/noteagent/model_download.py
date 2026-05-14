@@ -197,4 +197,4 @@ def cli_download(size: str, root: Optional[Path] = None) -> Path:
 # Environment knob — set NOTEAGENT_SKIP_AUTO_DOWNLOAD=1 to disable the
 # first-launch background fetch (useful in CI / tests).
 def auto_download_enabled() -> bool:
-    return os.environ.get("NOTEAGENT_SKIP_AUTO_DOWNLOAD", "").strip() not in {"1", "true", "yes"}
+    return os.environ.get("NOTEAGENT_SKIP_AUTO_DOWNLOAD", "").strip().lower() not in {"1", "true", "yes"}
