@@ -40,27 +40,35 @@ final class PythonServer: ObservableObject {
         state = .starting
         url = nil
 
-        // GUI macOS apps inherit a minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`)
-        // — not the user's shell PATH. So `/usr/bin/env noteagent` won't find
-        // a pipx/venv install. Resolve to an absolute path first; fall back to
-        // env with an augmented PATH if we can't find one outright.
-        let resolved = Self.resolveNoteagentExecutable()
+        // First-launch (or post-folder-move) storage prompt. Must complete
+        // before we exec Python, since the path is passed via env.
+        guard let storage = StoragePicker.resolve() else {
+            logger.notice("Storage picker cancelled; refusing to launch server")
+            state = .failed("NoteAgent needs a folder to save your recordings and transcripts. Click Try Again to choose one.")
+            return
+        }
+        logger.notice("Storage folder: \(storage.path, privacy: .public)")
+
+        // Launch strategy:
+        //   1. Bundled Python under Contents/Resources/python/ (release builds)
+        //   2. NOTEAGENT_BIN override / well-known dev install paths
+        //   3. /usr/bin/env noteagent with an augmented PATH (final fallback)
+        let launch = Self.resolveLaunch(port: port)
 
         let proc = Process()
-        if let resolved = resolved {
-            proc.executableURL = URL(fileURLWithPath: resolved)
-            proc.arguments = ["serve", "--port", String(port), "--no-browser"]
-            logger.notice("Using noteagent at \(resolved, privacy: .public)")
-        } else {
-            proc.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            proc.arguments = ["noteagent", "serve", "--port", String(port), "--no-browser"]
-            logger.notice("No absolute path found; falling back to PATH search via /usr/bin/env")
-        }
+        proc.executableURL = URL(fileURLWithPath: launch.executable)
+        proc.arguments = launch.arguments
+        logger.notice("Launching: \(launch.description, privacy: .public)")
 
-        // Augment the child's PATH so common venv / pipx locations are visible
-        // even when the GUI launch context didn't include them.
+        // Augment PATH and set bundle-local env vars (model dir, static assets,
+        // storage dir) so the Python side resolves resources inside the .app
+        // bundle and writes user data to the user-chosen folder.
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = Self.augmentedPath(existing: env["PATH"])
+        env["NOTEAGENT_STORAGE_DIR"] = storage.path
+        for (k, v) in launch.extraEnv {
+            env[k] = v
+        }
         proc.environment = env
 
         // Forward stdout / stderr to the Xcode console so the developer can
@@ -80,7 +88,7 @@ final class PythonServer: ObservableObject {
                 if self.state != .ready {
                     let hint: String
                     if code == 127 {
-                        hint = "`noteagent` was not found. Install with `make build` or set NOTEAGENT_BIN to its absolute path in the Xcode scheme."
+                        hint = "Neither the bundled Python nor a developer `noteagent` install was found. Run `make bundle` (release builds), `make build` (dev), or set NOTEAGENT_BIN in the Xcode scheme."
                     } else {
                         hint = "Server exited (status \(code)). See the Xcode console for the Python traceback."
                     }
@@ -101,16 +109,68 @@ final class PythonServer: ObservableObject {
         }
     }
 
-    /// Try to find an absolute path to the `noteagent` executable.
+    /// A resolved launch plan: which binary to exec, with which args, and
+    /// what extra env vars to set on top of the inherited environment.
+    private struct LaunchPlan {
+        let executable: String
+        let arguments: [String]
+        let extraEnv: [String: String]
+        let description: String
+    }
+
+    /// Decide how to start the Python server.
     ///
-    /// Resolution order:
-    ///   1. `NOTEAGENT_BIN` env var (set in the Xcode scheme for custom installs)
-    ///   2. Common pipx / venv / Homebrew install locations under $HOME and /opt
-    ///   3. `nil` — caller falls back to `/usr/bin/env noteagent` with an
-    ///      augmented PATH.
-    private static func resolveNoteagentExecutable() -> String? {
+    /// Order of preference:
+    ///   1. **Bundled Python** at `Contents/Resources/python/bin/python3`
+    ///      with `NOTEAGENT_MODEL_DIR` / `NOTEAGENT_STATIC_DIR` pointing into
+    ///      the bundle. This is what ships with release builds.
+    ///   2. **`NOTEAGENT_BIN` override** — explicit absolute path set in the
+    ///      Xcode scheme. Useful for dev builds that want a specific venv.
+    ///   3. **Well-known dev install locations** (`~/.local/bin`, `~/.venv/bin`,
+    ///      `/opt/homebrew/bin`, etc.). Lets a dev build run against `make build`.
+    ///   4. **`/usr/bin/env noteagent`** with an augmented PATH — final fallback.
+    private static func resolveLaunch(port: Int) -> LaunchPlan {
+        let serveArgs = ["serve", "--port", String(port), "--no-browser"]
         let fm = FileManager.default
 
+        // 1. Bundled Python under the .app bundle.
+        if let resources = Bundle.main.resourceURL {
+            let bundledPy = resources.appendingPathComponent("python/bin/python3").path
+            if fm.isExecutableFile(atPath: bundledPy) {
+                let modelDir = resources.appendingPathComponent("models").path
+                let staticDir = resources.appendingPathComponent("static").path
+                var env: [String: String] = [:]
+                if fm.fileExists(atPath: modelDir)  { env["NOTEAGENT_MODEL_DIR"]  = modelDir }
+                if fm.fileExists(atPath: staticDir) { env["NOTEAGENT_STATIC_DIR"] = staticDir }
+                return LaunchPlan(
+                    executable: bundledPy,
+                    arguments: ["-m", "noteagent.cli"] + serveArgs,
+                    extraEnv: env,
+                    description: "bundled python at \(bundledPy)"
+                )
+            }
+        }
+
+        // 2 + 3. Override env var or well-known dev install paths.
+        if let dev = resolveDevNoteagent(fm: fm) {
+            return LaunchPlan(
+                executable: dev,
+                arguments: serveArgs,
+                extraEnv: [:],
+                description: "dev install at \(dev)"
+            )
+        }
+
+        // 4. Last-resort PATH search.
+        return LaunchPlan(
+            executable: "/usr/bin/env",
+            arguments: ["noteagent"] + serveArgs,
+            extraEnv: [:],
+            description: "PATH search via /usr/bin/env (augmented)"
+        )
+    }
+
+    private static func resolveDevNoteagent(fm: FileManager) -> String? {
         if let override = ProcessInfo.processInfo.environment["NOTEAGENT_BIN"],
            !override.isEmpty,
            fm.isExecutableFile(atPath: override) {

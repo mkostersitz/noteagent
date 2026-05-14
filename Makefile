@@ -1,4 +1,4 @@
-.PHONY: help setup venv rust python model build clean test serve release
+.PHONY: help setup venv rust python model build clean test serve release bundle app app-clean sign notarize ship
 
 PYTHON   ?= python3
 VENV     := .venv
@@ -63,6 +63,50 @@ clean: ## Remove build artifacts (keeps venv and models)
 distclean: clean ## Full clean including venv and downloaded models
 	rm -rf $(VENV) models/*.bin models/*.pt
 	@echo "✔ Removed virtual environment and models."
+
+# ── macOS standalone app ─────────────────────────────────────────────
+
+bundle: ## Build the embedded Python + ggml model under apps/macos/BuiltResources/
+	./apps/macos/scripts/build-bundle.sh
+
+app: bundle ## Build NoteAgent.app via xcodebuild (requires full Xcode, not just CLT)
+	@if ! xcodebuild -version >/dev/null 2>&1; then \
+		echo "Full Xcode is required (got Command Line Tools only)."; \
+		echo "Install Xcode from the App Store, then run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"; \
+		exit 1; \
+	fi
+	xcodebuild \
+		-project apps/macos/NoteAgent.xcodeproj \
+		-scheme NoteAgent \
+		-configuration Release \
+		-derivedDataPath apps/macos/build \
+		build
+	@echo ""
+	@echo "✔ NoteAgent.app built at:"
+	@find apps/macos/build/Build/Products/Release -name 'NoteAgent.app' -maxdepth 2 -print
+
+app-clean: ## Remove app build output and bundled resources
+	rm -rf apps/macos/build apps/macos/BuiltResources
+	@echo "✔ Removed apps/macos/{build,BuiltResources}/"
+
+sign: ## Code-sign NoteAgent.app (requires DEVELOPER_ID env var)
+	@if [ -z "$$DEVELOPER_ID" ]; then \
+		echo "Set DEVELOPER_ID, e.g. DEVELOPER_ID=\"Developer ID Application: Jane Doe (TEAMID123)\""; \
+		echo "List candidates with: security find-identity -v -p codesigning"; \
+		exit 1; \
+	fi
+	./apps/macos/scripts/sign-bundle.sh
+
+notarize: ## Submit to Apple Notary + staple (requires NOTARY_PROFILE or APPLE_ID/TEAM/PASSWORD)
+	./apps/macos/scripts/notarize-bundle.sh
+
+ship: app sign notarize ## Build, sign, and notarize NoteAgent.app end-to-end
+	@echo ""
+	@echo "══════════════════════════════════════════════"
+	@echo "  ✔ NoteAgent.app is signed and notarized."
+	@echo "    Drag the .app from apps/macos/build/Build/Products/Release/"
+	@echo "    onto another Mac to verify it launches without Gatekeeper warnings."
+	@echo "══════════════════════════════════════════════"
 
 # ── Release ──────────────────────────────────────────────────────────
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import mimetypes
+import os
 import queue
 import re
 import shutil
@@ -31,7 +32,20 @@ from noteagent import get_version
 from noteagent.auth import validate_token, is_admin_role
 from noteagent.models import AppConfigExtended, AuthToken, Session
 
-STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
+def _resolve_static_dir() -> Path:
+    """Pick where the web UI's static assets live.
+
+    `NOTEAGENT_STATIC_DIR` lets the bundled macOS app point at
+    `Contents/Resources/static/` without depending on the repo layout.
+    Falls back to the repo-relative `static/` for `pip install -e .` setups.
+    """
+    env = os.environ.get("NOTEAGENT_STATIC_DIR", "").strip()
+    if env:
+        return Path(env).expanduser()
+    return Path(__file__).resolve().parent.parent.parent / "static"
+
+
+STATIC_DIR = _resolve_static_dir()
 
 # Global config - will be loaded on startup
 _app_config: Optional[AppConfigExtended] = None

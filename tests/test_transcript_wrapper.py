@@ -64,19 +64,21 @@ def test_to_transcript_handles_empty_dict():
 
 
 def test_model_path_uses_ggml_naming(tmp_path, monkeypatch):
-    monkeypatch.setattr(wrapper, "_MODEL_DIR", tmp_path)
+    # transcript.py delegates to noteagent.model_download for the model
+    # directory; patch the env var the resolver honors.
+    monkeypatch.setenv("NOTEAGENT_MODEL_DIR", str(tmp_path))
     assert wrapper._model_path("base.en") == tmp_path / "ggml-base.en.bin"
 
 
 def test_load_model_raises_when_missing(tmp_path, monkeypatch):
-    monkeypatch.setattr(wrapper, "_MODEL_DIR", tmp_path)
+    monkeypatch.setenv("NOTEAGENT_MODEL_DIR", str(tmp_path))
     with pytest.raises(RuntimeError, match="Whisper model not found"):
         wrapper.load_model("nonexistent")
 
 
 def test_load_model_returns_rust_transcriber_when_present(tmp_path, monkeypatch):
     """`load_model` constructs `noteagent_audio.WhisperTranscriber` with the resolved path."""
-    monkeypatch.setattr(wrapper, "_MODEL_DIR", tmp_path)
+    monkeypatch.setenv("NOTEAGENT_MODEL_DIR", str(tmp_path))
     model_file = tmp_path / "ggml-tiny.en.bin"
     model_file.write_bytes(b"stub")
 

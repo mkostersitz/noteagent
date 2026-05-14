@@ -19,8 +19,21 @@ import urllib.request
 from pathlib import Path
 from typing import Callable, Optional
 
-# Repo-root/models — same dir transcript.py looks in.
-MODEL_DIR = Path(__file__).resolve().parent.parent.parent / "models"
+def _default_model_dir() -> Path:
+    """Resolve the model directory.
+
+    Honors `NOTEAGENT_MODEL_DIR` so a bundled macOS app (or any deployment
+    where `noteagent` isn't installed editable from the repo) can point at
+    a fixed location like `Contents/Resources/models/`. Falls back to the
+    repo-relative `models/` dir for the developer setup.
+    """
+    env = os.environ.get("NOTEAGENT_MODEL_DIR", "").strip()
+    if env:
+        return Path(env).expanduser()
+    return Path(__file__).resolve().parent.parent.parent / "models"
+
+
+MODEL_DIR = _default_model_dir()
 
 # Supported model sizes and their canonical sizes (approximate, MB).
 # Source: https://github.com/ggerganov/whisper.cpp/blob/master/models/README.md
@@ -55,8 +68,13 @@ def known_models() -> list[str]:
 
 
 def model_path(size: str, root: Optional[Path] = None) -> Path:
-    """Return the on-disk path for a ggml model of the given size."""
-    return (root or MODEL_DIR) / f"ggml-{size}.bin"
+    """Return the on-disk path for a ggml model of the given size.
+
+    When `root` is None, re-resolves from `NOTEAGENT_MODEL_DIR` on every call
+    so monkeypatching the env var in tests (and the macOS app setting it on
+    process launch) works regardless of import order.
+    """
+    return (root or _default_model_dir()) / f"ggml-{size}.bin"
 
 
 def is_model_present(size: str, root: Optional[Path] = None) -> bool:

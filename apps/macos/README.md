@@ -29,10 +29,12 @@ frozen `python-build-standalone` interpreter under
 
 ## First-time setup
 
+### Developer iteration (Debug builds)
+
 ```bash
 # 1) Build the Python side (workspace root):
 make build
-which noteagent       # confirm it's on PATH — the app shells out to this
+which noteagent       # the dev app falls back to this if Resources/python is absent
 
 # 2) Open the project in Xcode:
 open apps/macos/NoteAgent.xcodeproj
@@ -41,6 +43,34 @@ open apps/macos/NoteAgent.xcodeproj
 #    - Select the NoteAgent scheme (already set as the default).
 #    - Signing & Capabilities → set your Team. "Sign to Run Locally" works.
 #    - ⌘R to run.
+```
+
+### Release build with embedded Python
+
+```bash
+# 1) Produce the bundle inputs (downloads python-build-standalone + builds
+#    the whisper.cpp wheel against it):
+make bundle           # ~5 min cold, instant when up-to-date
+
+# 2) Build NoteAgent.app via xcodebuild:
+make app              # output: apps/macos/build/Build/Products/Release/NoteAgent.app
+```
+
+### Ship a notarized .app (one-shot)
+
+```bash
+# One-time: store an app-specific password in the keychain.
+# Generate the password at https://appleid.apple.com/account/manage → App-Specific Passwords.
+xcrun notarytool store-credentials NoteAgentNotary \
+    --apple-id  "you@example.com" \
+    --team-id   "TEAMID123" \
+    --password  "abcd-efgh-ijkl-mnop"
+
+# Each release:
+DEVELOPER_ID="Developer ID Application: Your Name (TEAMID123)" \
+NOTARY_PROFILE=NoteAgentNotary \
+    make ship
+# → builds, signs every nested .so / .dylib / python3, notarizes, staples
 ```
 
 ## How it works

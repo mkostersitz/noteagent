@@ -14,18 +14,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
+from noteagent.model_download import MODEL_DIR as _MODEL_DIR, model_path as _shared_model_path
 from noteagent.models import Transcript, TranscriptSegment
-
-# Local ggml model cache. The model downloader (Phase 7) writes files here.
-_MODEL_DIR = Path(__file__).resolve().parent.parent.parent / "models"
 
 
 def _model_path(model_size: str) -> Path:
     """Resolve the on-disk path for a ggml model.
 
-    whisper.cpp uses files named `ggml-<size>.bin` (e.g. `ggml-base.en.bin`).
+    Delegates to :mod:`noteagent.model_download` so the resolution rules
+    (NOTEAGENT_MODEL_DIR env var override, then repo-relative ``models/``
+    fallback) live in one place.
     """
-    return _MODEL_DIR / f"ggml-{model_size}.bin"
+    return _shared_model_path(model_size)
 
 
 def _to_segment(seg: dict) -> TranscriptSegment:
