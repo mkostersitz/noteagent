@@ -16,7 +16,9 @@ noteagent/
 │   │       └── error.rs           # CoreError (no binding-layer types)
 │   ├── noteagent-py/              # PyO3 bindings → `noteagent_audio` module
 │   │   └── src/lib.rs             # Thin wrappers around noteagent-core
-│   └── (future) noteagent-ffi/    # UniFFI bindings → Swift package / xcframework
+│   └── noteagent-ffi/             # UniFFI bindings → Swift xcframework
+│       ├── src/lib.rs             # Thread-safe wrappers + scaffolding includes
+│       └── src/noteagent.udl      # Public interface definition
 └── src/noteagent/                 # Python package (FastAPI server, CLI, storage)
 ```
 
@@ -24,9 +26,9 @@ noteagent/
 
 | Crate | Depends on | Built by | Consumed by |
 |-------|-----------|----------|-------------|
-| `noteagent-core` | `cpal` (optional), `hound`, `ringbuf`, `serde`, `thiserror` | `cargo build` | Other Rust crates only |
+| `noteagent-core` | `cpal` (optional), `hound`, `ringbuf`, `serde`, `thiserror`, `whisper-rs` | `cargo build` | Other Rust crates only |
 | `noteagent-py` | `noteagent-core`, `pyo3` | `maturin` | Python (`import noteagent_audio`) |
-| `noteagent-ffi` (future) | `noteagent-core`, `uniffi` | `cargo build` + `uniffi-bindgen` | Swift apps (macOS / iOS / iPadOS) |
+| `noteagent-ffi` | `noteagent-core`, `uniffi` | `cargo build` + `uniffi-bindgen` | Swift apps (macOS / iOS / iPadOS) |
 
 `noteagent-core` is the single source of truth for audio capture, DSP, and
 (in a later phase) transcription. The binding crates contain *only* the
@@ -87,3 +89,67 @@ The wheel installs a Python package named `noteagent-py`, but the Python
 import name remains `noteagent_audio` (set via `[lib].name` in
 `crates/noteagent-py/Cargo.toml`) so existing imports continue to work
 unchanged.
+
+## UniFFI / Swift bindings (Phase 8 scaffold)
+
+`crates/noteagent-ffi/` exposes a narrow slice of `noteagent-core` to Swift
+via [UniFFI](https://mozilla.github.io/uniffi-rs/). The interface is defined
+in [src/noteagent.udl](../crates/noteagent-ffi/src/noteagent.udl) and is
+intentionally small — only what the Swift app currently needs:
+
+- `library_version()` — sanity-check function for the About screen
+- `Segment`, `Transcript` records
+- `QualityPreset` enum (`Fast` / `Balanced` / `Accurate`)
+- `WhisperTranscriber` object (constructor, `transcribe_file`,
+  `transcribe_samples`, `model_id`)
+- `FfiError` error enum
+
+The Rust types in [src/lib.rs](../crates/noteagent-ffi/src/lib.rs) are
+thread-safe wrappers (`Mutex<CoreWhisperTranscriber>`) so UniFFI's
+`Send + Sync` requirement is satisfied without changing `noteagent-core`.
+
+### Generating Swift bindings
+
+```bash
+# 1) Compile the library so the bindgen can introspect it.
+cargo build -p noteagent-ffi --release
+
+# 2) Emit Swift sources + module map.
+cargo run -p noteagent-ffi --features cli --bin uniffi-bindgen -- \
+    generate crates/noteagent-ffi/src/noteagent.udl \
+    --language swift --out-dir generated/swift
+
+# Output:
+#   generated/swift/noteagent_ffi.swift       ← Swift API
+#   generated/swift/noteagent_ffiFFI.h        ← C header
+#   generated/swift/noteagent_ffiFFI.modulemap
+```
+
+### iOS / iPadOS build
+
+For iOS/iPadOS, build `noteagent-core` **without** the `cpal-backend`
+feature (cpal does not support iOS capture; use the `PushAudioSource`
+fed by `AVAudioEngine` from Swift). Also switch `whisper-rs` from `metal`
+to `coreml` in [Cargo.toml](../Cargo.toml) workspace dependencies.
+
+```bash
+# Add iOS targets once:
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+
+# Build static libs for device + simulator:
+cargo build -p noteagent-ffi --release --target aarch64-apple-ios \
+    --no-default-features
+cargo build -p noteagent-ffi --release --target aarch64-apple-ios-sim \
+    --no-default-features
+
+# Bundle into an xcframework:
+xcodebuild -create-xcframework \
+    -library target/aarch64-apple-ios/release/libnoteagent_ffi.a \
+        -headers generated/swift \
+    -library target/aarch64-apple-ios-sim/release/libnoteagent_ffi.a \
+        -headers generated/swift \
+    -output NoteAgentCore.xcframework
+```
+
+The resulting `NoteAgentCore.xcframework` + the generated `.swift` file
+are what an iOS app project consumes.

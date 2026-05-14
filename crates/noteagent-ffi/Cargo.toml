@@ -1,0 +1,36 @@
+[package]
+name = "noteagent-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UniFFI bindings exposing `noteagent-core` to Swift (macOS / iOS / iPadOS) and other supported languages. Produces a staticlib for xcframework packaging."
+
+[lib]
+name = "noteagent_ffi"
+# staticlib for the iOS xcframework; cdylib for macOS/Linux/Android dyld loading.
+crate-type = ["staticlib", "cdylib", "lib"]
+
+[features]
+default = []
+# `cli` pulls in the uniffi-bindgen binary used to emit Swift/Kotlin/Python
+# bindings from the compiled library. Enable in the binding-generation step
+# only — application builds don't need it.
+cli = ["uniffi/cli"]
+
+[dependencies]
+uniffi = { workspace = true }
+thiserror = { workspace = true }
+# noteagent-core: built without cpal-backend for iOS/iPadOS targets. The
+# desktop feature set is fine for macOS host builds. Override on the
+# command line when targeting iOS: `--no-default-features` on noteagent-core.
+noteagent-core = { path = "../noteagent-core" }
+
+[build-dependencies]
+uniffi = { workspace = true, features = ["build"] }
+
+# UniFFI provides a default `uniffi-bindgen` binary when the `cli` feature
+# is enabled. Invoke via `cargo run --features cli --bin uniffi-bindgen ...`.
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["cli"]
