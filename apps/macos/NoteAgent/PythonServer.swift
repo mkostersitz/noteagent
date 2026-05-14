@@ -40,13 +40,28 @@ final class PythonServer: ObservableObject {
         state = .starting
         url = nil
 
+        // GUI macOS apps inherit a minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`)
+        // — not the user's shell PATH. So `/usr/bin/env noteagent` won't find
+        // a pipx/venv install. Resolve to an absolute path first; fall back to
+        // env with an augmented PATH if we can't find one outright.
+        let resolved = Self.resolveNoteagentExecutable()
+
         let proc = Process()
-        // `noteagent` is the entry-point installed by `pip install -e .`.
-        // We resolve it via /usr/bin/env so it picks up whichever venv is on
-        // PATH when Xcode launches the app. A later phase will replace this
-        // with an embedded interpreter under `Contents/Resources/python/`.
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        proc.arguments = ["noteagent", "serve", "--port", String(port), "--no-browser"]
+        if let resolved = resolved {
+            proc.executableURL = URL(fileURLWithPath: resolved)
+            proc.arguments = ["serve", "--port", String(port), "--no-browser"]
+            logger.notice("Using noteagent at \(resolved, privacy: .public)")
+        } else {
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            proc.arguments = ["noteagent", "serve", "--port", String(port), "--no-browser"]
+            logger.notice("No absolute path found; falling back to PATH search via /usr/bin/env")
+        }
+
+        // Augment the child's PATH so common venv / pipx locations are visible
+        // even when the GUI launch context didn't include them.
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = Self.augmentedPath(existing: env["PATH"])
+        proc.environment = env
 
         // Forward stdout / stderr to the Xcode console so the developer can
         // see Python tracebacks during dev.
@@ -63,7 +78,13 @@ final class PythonServer: ObservableObject {
                 let code = terminated.terminationStatus
                 self.logger.notice("noteagent serve exited with status \(code)")
                 if self.state != .ready {
-                    self.state = .failed("Server exited (status \(code)). Check that `noteagent` is on PATH.")
+                    let hint: String
+                    if code == 127 {
+                        hint = "`noteagent` was not found. Install with `make build` or set NOTEAGENT_BIN to its absolute path in the Xcode scheme."
+                    } else {
+                        hint = "Server exited (status \(code)). See the Xcode console for the Python traceback."
+                    }
+                    self.state = .failed(hint)
                 }
                 self.process = nil
             }
@@ -78,6 +99,54 @@ final class PythonServer: ObservableObject {
             logger.error("Failed to launch noteagent: \(error.localizedDescription, privacy: .public)")
             state = .failed("Could not launch `noteagent`: \(error.localizedDescription)")
         }
+    }
+
+    /// Try to find an absolute path to the `noteagent` executable.
+    ///
+    /// Resolution order:
+    ///   1. `NOTEAGENT_BIN` env var (set in the Xcode scheme for custom installs)
+    ///   2. Common pipx / venv / Homebrew install locations under $HOME and /opt
+    ///   3. `nil` — caller falls back to `/usr/bin/env noteagent` with an
+    ///      augmented PATH.
+    private static func resolveNoteagentExecutable() -> String? {
+        let fm = FileManager.default
+
+        if let override = ProcessInfo.processInfo.environment["NOTEAGENT_BIN"],
+           !override.isEmpty,
+           fm.isExecutableFile(atPath: override) {
+            return override
+        }
+
+        let home = NSHomeDirectory()
+        let candidates: [String] = [
+            "\(home)/.local/bin/noteagent",          // pipx default
+            "\(home)/.venv/bin/noteagent",
+            "\(home)/venv/bin/noteagent",
+            "\(home)/repos/noteagent/.venv/bin/noteagent",
+            "\(home)/repos/noteagent/venv_test/bin/noteagent",
+            "/opt/homebrew/bin/noteagent",
+            "/usr/local/bin/noteagent",
+        ]
+        return candidates.first(where: { fm.isExecutableFile(atPath: $0) })
+    }
+
+    /// Add common bin directories to PATH so `/usr/bin/env` and any child
+    /// shell-outs (e.g. python interpreter discovery) work.
+    private static func augmentedPath(existing: String?) -> String {
+        let home = NSHomeDirectory()
+        let extras = [
+            "\(home)/.local/bin",
+            "\(home)/.venv/bin",
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+        ]
+        var parts = (existing ?? "/usr/bin:/bin:/usr/sbin:/sbin")
+            .split(separator: ":")
+            .map(String.init)
+        for e in extras where !parts.contains(e) {
+            parts.insert(e, at: 0)
+        }
+        return parts.joined(separator: ":")
     }
 
     func stop() {

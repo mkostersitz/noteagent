@@ -590,45 +590,21 @@ def _start_single(config, device: str, body: RecordStartRequest):
         session = create_session(config, device_name=device)
         recorder = Recorder(device_name=device, sample_rate=config.sample_rate)
         recorder.start(session.audio_path, device_name=device)
-        
+
         _state.session = session
         _state.recorder = recorder
         _state.active = True
         _state.start_time = time.time()
-        
-        if body.live_transcript:
-            from noteagent.audio import StreamReader
-            from noteagent.transcript import LiveTranscriber
-            
-            _state.stream = StreamReader(device_name=device, sample_rate=config.sample_rate)
-            _state.transcriber = LiveTranscriber(
-                model_size=body.model or config.whisper_model,
-                language=config.language,
-                sample_rate=config.sample_rate,
-            )
+
+        if body.live:
             _state._live_thread = threading.Thread(
                 target=_live_loop,
-                args=(_state.stream, _state.transcriber),
-                daemon=False,  # Changed for graceful shutdown
+                args=(device, config.sample_rate, body.model, config.language),
+                daemon=True,
             )
             _state._live_thread.start()
-        
-        return {"status": "started", "session_id": session.metadata.session_id}
 
-    _state.active = True
-    _state.session = session
-    _state.recorder = recorder
-    _state.start_time = time.time()
-
-    if body.live:
-        _state._live_thread = threading.Thread(
-            target=_live_loop,
-            args=(device, config.sample_rate, body.model, config.language),
-            daemon=True,
-        )
-        _state._live_thread.start()
-
-    return {"status": "recording", "session_id": session.metadata.session_id, "mode": "single"}
+        return {"status": "recording", "session_id": session.metadata.session_id, "mode": "single"}
 
 
 def _start_meeting(config, mic_device: str, system_device: str, body: RecordStartRequest):
