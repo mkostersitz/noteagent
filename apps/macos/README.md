@@ -56,6 +56,23 @@ make bundle           # ~5 min cold, instant when up-to-date
 make app              # output: apps/macos/build/Build/Products/Release/NoteAgent.app
 ```
 
+### Before the first Xcode Run / Build
+
+The hand-written `project.pbxproj` ships with two placeholders you must
+fill in once, in Xcode's **Signing & Capabilities** tab on the
+`NoteAgent` target:
+
+1. **Team** — pick your Apple Developer Team (or "Sign to Run Locally"
+   for a personal Apple ID). The pbxproj stores this in
+   `DEVELOPMENT_TEAM`, currently empty.
+2. **Bundle Identifier** — currently `com.noteagent.macos`. Change to
+   your own reverse-domain identifier (e.g. `com.yourname.noteagent`)
+   if you plan to ship; the existing value may collide with an
+   App Store registration.
+
+Xcode persists these to `xcuserdata/` (gitignored), so the change won't
+leak into commits unless you also edit `project.pbxproj` directly.
+
 ### Ship a notarized .app (one-shot)
 
 ```bash

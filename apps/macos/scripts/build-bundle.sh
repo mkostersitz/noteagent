@@ -49,8 +49,14 @@ PBS_URL="https://github.com/astral-sh/python-build-standalone/releases/download/
 log() { printf "\033[1;36m[build-bundle]\033[0m %s\n" "$*" >&2; }
 die() { printf "\033[1;31m[build-bundle]\033[0m %s\n" "$*" >&2; exit 1; }
 
+# Xcode runs build phases with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin).
+# rustup and Homebrew aren't there. Augment to cover the common install
+# locations so `cargo`/`rustc` resolve when this script is launched from
+# Xcode's Build Phase.
+export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 require_cmd() {
-    command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
+    command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1 (PATH=$PATH)"
 }
 
 require_cmd curl
