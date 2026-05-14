@@ -47,6 +47,23 @@ List candidates with: security find-identity -v -p codesigning"
 ENTITLEMENTS_PATH="${ENTITLEMENTS_PATH:-$REPO_ROOT/apps/macos/NoteAgent/NoteAgent.entitlements}"
 [[ -f "$ENTITLEMENTS_PATH" ]] || die "Entitlements file not found: $ENTITLEMENTS_PATH"
 
+# Sanity-check that DEVELOPER_ID actually resolves to an identity in the
+# keychain. `security find-identity -p codesigning -v` lists usable
+# certificates; grep for the requested identity by substring (matches
+# either the full common name or the team-ID suffix).
+if ! security find-identity -v -p codesigning 2>/dev/null | grep -F -q "$DEVELOPER_ID"; then
+    {
+        echo "DEVELOPER_ID=\"$DEVELOPER_ID\" does not match any codesigning identity in your keychain."
+        echo
+        echo "Available identities:"
+        security find-identity -v -p codesigning 2>&1 | sed 's/^/    /'
+        echo
+        echo "Pick the full string after the hash, e.g.:"
+        echo "    DEVELOPER_ID=\"Developer ID Application: Jane Doe (ABC123DEF4)\""
+    } >&2
+    die "Identity not found"
+fi
+
 KEYCHAIN_FLAG=""
 if [[ -n "${KEYCHAIN:-}" ]]; then
     KEYCHAIN_FLAG="--keychain $KEYCHAIN"
@@ -89,8 +106,15 @@ for bin in "${NESTED[@]}"; do
     if ! file "$bin" 2>/dev/null | grep -q 'Mach-O'; then
         continue
     fi
-    codesign "${CS_OPTS[@]}" "$bin" 2>/dev/null \
-        || die "Failed to sign $bin" 2
+    # Capture stderr so the failure mode (identity not found, keychain
+    # locked, timestamp server unreachable, …) is visible. Previously
+    # `2>/dev/null` swallowed everything and the user saw only the exit
+    # code, which is unactionable.
+    if ! cs_err="$(codesign "${CS_OPTS[@]}" "$bin" 2>&1)"; then
+        printf '\033[1;31m[sign-bundle]\033[0m codesign failed for %s\n' "$bin" >&2
+        printf '%s\n' "$cs_err" | sed 's/^/    /' >&2
+        die "Failed to sign $bin (see codesign output above)" 2
+    fi
 done
 log "Signed nested binaries"
 
