@@ -76,6 +76,7 @@
 				0A0000000000000000000020 /* Sources */,
 				0A0000000000000000000021 /* Resources */,
 				0A0000000000000000000022 /* Frameworks */,
+				0A0000000000000000000023 /* Bundle Python + Model */,
 			);
 			buildRules = (
 			);
@@ -129,6 +130,32 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0A0000000000000000000023 /* Bundle Python + Model */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/build-bundle.sh",
+				"$(SRCROOT)/BuiltResources/python/bin/python3",
+				"$(SRCROOT)/BuiltResources/models/ggml-base.en.bin",
+			);
+			name = "Bundle Python + Model";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(CODESIGNING_FOLDER_PATH)/Contents/Resources/python/bin/python3",
+				"$(CODESIGNING_FOLDER_PATH)/Contents/Resources/models/ggml-base.en.bin",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\n\n# 1) Build (or refresh) the embedded Python + ggml model.\n#    Idempotent — subsequent builds skip when outputs are already current.\n\"$SRCROOT/scripts/build-bundle.sh\"\n\n# 2) Stage into the .app bundle. rsync --delete keeps stale files from\n#    accumulating across incremental builds.\nmkdir -p \"$CODESIGNING_FOLDER_PATH/Contents/Resources\"\nrsync -a --delete \"$SRCROOT/BuiltResources/python/\"  \"$CODESIGNING_FOLDER_PATH/Contents/Resources/python/\"\nrsync -a --delete \"$SRCROOT/BuiltResources/static/\"  \"$CODESIGNING_FOLDER_PATH/Contents/Resources/static/\"\nrsync -a --delete \"$SRCROOT/BuiltResources/models/\"  \"$CODESIGNING_FOLDER_PATH/Contents/Resources/models/\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0A0000000000000000000020 /* Sources */ = {

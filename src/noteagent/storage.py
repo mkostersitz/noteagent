@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import sys
@@ -25,6 +26,19 @@ CONFIG_DIR = Path.home() / ".config" / "noteagent"
 CONFIG_FILE = CONFIG_DIR / "config.toml"
 
 
+def _apply_storage_override(config: AppConfig) -> AppConfig:
+    """Apply NOTEAGENT_STORAGE_DIR override if set.
+
+    The macOS app sets this from the user's first-launch folder pick so the
+    rest of the codebase (sessions, exports, etc.) writes to the user-chosen
+    location instead of the config-file default.
+    """
+    env = os.environ.get("NOTEAGENT_STORAGE_DIR", "").strip()
+    if env:
+        config.storage_path = Path(env).expanduser()
+    return config
+
+
 def load_config() -> AppConfig:
     """Load config from TOML file, or return defaults."""
     if CONFIG_FILE.exists():
@@ -42,9 +56,10 @@ def load_config() -> AppConfig:
         if "default_path" in flat and "storage_path" not in flat:
             flat["storage_path"] = flat.pop("default_path")
 
-        return AppConfig(**{k: v for k, v in flat.items() if k in AppConfig.model_fields})
+        config = AppConfig(**{k: v for k, v in flat.items() if k in AppConfig.model_fields})
+        return _apply_storage_override(config)
 
-    return AppConfig()
+    return _apply_storage_override(AppConfig())
 
 
 def save_config(config: AppConfig) -> None:
@@ -103,9 +118,9 @@ def load_config_extended() -> AppConfigExtended:
         if rate_limit_data:
             base_fields["rate_limit"] = rate_limit_data
             
-        return AppConfigExtended(**base_fields)
-    
-    return AppConfigExtended()
+        return _apply_storage_override(AppConfigExtended(**base_fields))
+
+    return _apply_storage_override(AppConfigExtended())
 
 
 def save_config_extended(config: AppConfigExtended) -> None:

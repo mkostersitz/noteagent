@@ -16,3 +16,6 @@ Carthage/
 # Swift Package Manager
 .swiftpm/
 Package.resolved
+
+# Build output produced by scripts/build-bundle.sh
+BuiltResources/
