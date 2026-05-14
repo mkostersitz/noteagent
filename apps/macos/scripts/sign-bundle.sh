@@ -72,7 +72,12 @@ CS_OPTS=(
 # we sign them before the surrounding bundle, depth-first.
 
 log "Counting nested Mach-O binaries…"
-mapfile -t NESTED < <(
+# `mapfile`/`readarray` is bash 4+; macOS ships bash 3.2. Use a portable
+# while-read loop into an array so this works with /usr/bin/bash too.
+NESTED=()
+while IFS= read -r line; do
+    NESTED+=("$line")
+done < <(
     find "$APP_PATH/Contents/Resources/python" \
         \( -name '*.so' -o -name '*.dylib' -o -name 'python3*' \) \
         -type f 2>/dev/null
