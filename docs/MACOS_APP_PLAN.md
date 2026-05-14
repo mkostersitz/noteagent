@@ -72,7 +72,7 @@ a lot:
    - `com.apple.security.network.client` (LLM API, model downloads)
    - `com.apple.security.files.user-selected.read-write` (exports, imports)
 2. Move default storage from `~/notes/noteagent` to
-   `~/Library/Containers/com.noteagent.macos/Data/Documents/`.
+   `~/Library/Containers/ai.ethervox.noteagent/Data/Documents/`.
 3. Audit Python code for sandbox-hostile syscalls:
    - `subprocess.run(["open", "-R", …])` in `server.py` — replace with an
      `NSWorkspace.shared.activateFileViewerSelecting(...)` call exposed
@@ -106,7 +106,7 @@ Every binary in the bundle is signed with the hardened runtime flag:
 
 ## Phase 6 — App Store Connect
 
-1. Register `com.noteagent.macos` Bundle ID in Apple Developer portal.
+1. Register `ai.ethervox.noteagent` Bundle ID in Apple Developer portal.
 2. Create the App record in App Store Connect.
 3. Category: Productivity (likely) or Utilities.
 4. Screenshots: 1280×800 + 1440×900 (macOS sizes).

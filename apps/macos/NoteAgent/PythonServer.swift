@@ -29,7 +29,7 @@ final class PythonServer: ObservableObject {
     private var process: Process?
     private var healthcheckTask: Task<Void, Never>?
 
-    private let logger = Logger(subsystem: "com.noteagent.macos", category: "PythonServer")
+    private let logger = Logger(subsystem: "ai.ethervox.noteagent", category: "PythonServer")
 
     init(port: Int = 8765) {
         self.port = port
