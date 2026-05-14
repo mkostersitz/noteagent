@@ -65,10 +65,9 @@ fill in once, in Xcode's **Signing & Capabilities** tab on the
 1. **Team** — pick your Apple Developer Team (or "Sign to Run Locally"
    for a personal Apple ID). The pbxproj stores this in
    `DEVELOPMENT_TEAM`, currently empty.
-2. **Bundle Identifier** — currently `com.noteagent.macos`. Change to
-   your own reverse-domain identifier (e.g. `com.yourname.noteagent`)
-   if you plan to ship; the existing value may collide with an
-   App Store registration.
+2. **Bundle Identifier** — set to `ai.ethervox.noteagent`. Keep this
+   value when registering the app in App Store Connect / Apple Developer
+   portal so the provisioning profile matches.
 
 Xcode persists these to `xcuserdata/` (gitignored), so the change won't
 leak into commits unless you also edit `project.pbxproj` directly.
@@ -157,10 +156,10 @@ GUI macOS apps inherit a minimal `PATH` (`/usr/bin:/bin:/usr/sbin:/sbin`),
 ### Checking what the app actually did
 
 The shell forwards all process and Python output to `os.log` under the
-`com.noteagent.macos` subsystem. From Terminal:
+`ai.ethervox.noteagent` subsystem. From Terminal:
 
 ```bash
-log show --predicate 'subsystem == "com.noteagent.macos"' --last 5m --info
+log show --predicate 'subsystem == "ai.ethervox.noteagent"' --last 5m --info
 ```
 
 You'll see lines like `Using noteagent at /Users/you/.local/bin/noteagent`
