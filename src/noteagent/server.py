@@ -174,6 +174,27 @@ app = FastAPI(title="NoteAgent", version=get_version())
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
+@app.on_event("startup")
+def _ensure_default_model() -> None:
+    """Kick off a background ggml model download on first launch.
+
+    Idempotent: returns immediately if the configured model is already on
+    disk. Skipped when `NOTEAGENT_SKIP_AUTO_DOWNLOAD=1` is set (CI, tests).
+    """
+    from noteagent.model_download import auto_download_enabled, ensure_model_async
+    from noteagent.storage import load_config
+
+    if not auto_download_enabled():
+        return
+
+    try:
+        cfg = load_config()
+        ensure_model_async(cfg.whisper_model)
+    except Exception:
+        # Never block server startup on a model-download issue.
+        pass
+
 # Add security middleware - order matters, execute from bottom to top
 app.add_middleware(RateLimitBypassMiddleware)  # Check IP whitelist first
 app.add_middleware(AuthMiddleware)  # Then auth

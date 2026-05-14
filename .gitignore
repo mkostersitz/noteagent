@@ -28,7 +28,8 @@ ENV/
 env/
 
 # Rust
-noteagent-audio/target/
+target/
+crates/*/target/
 Cargo.lock
 
 # Testing

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        Phase 1 (dev): App Sandbox is OFF so the shell can spawn the
+        developer's `noteagent` venv process freely. The App Store path will
+        flip this to true and replace the subprocess with a bundled Python
+        runtime; see docs/ARCHITECTURE.md and the original App Store plan.
+    -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+
+    <!-- Required regardless of sandbox state to record audio. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+
+    <!--
+        Hardened-runtime exception: needed because we spawn `/usr/bin/env`
+        and load a Python interpreter at runtime. Without this, Hardened
+        Runtime blocks the subprocess. Remove once Python is embedded
+        inside the bundle and code-signed.
+    -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>

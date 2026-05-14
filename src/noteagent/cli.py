@@ -529,6 +529,25 @@ def export(
     console.print(f"[green]Exported to {path}[/]")
 
 
+@app.command(name="download-model")
+def download_model_command(
+    size: str = typer.Argument("base.en", help="Model size, e.g. tiny.en, base.en, small, medium, large-v3"),
+) -> None:
+    """Download a ggml whisper.cpp model from HuggingFace."""
+    from noteagent.model_download import cli_download, known_models
+
+    if size not in known_models():
+        console.print(f"[red]Unknown model: {size}[/]")
+        console.print(f"Known: {', '.join(known_models())}")
+        raise typer.Exit(1)
+
+    try:
+        cli_download(size)
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/]")
+        raise typer.Exit(1) from exc
+
+
 @app.command()
 def devices() -> None:
     """List available audio input devices."""

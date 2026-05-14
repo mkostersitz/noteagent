@@ -1,0 +1,61 @@
+// UniFFI interface for noteagent-core.
+//
+// This file defines the surface area exposed to Swift (and other supported
+// languages). Keep it intentionally small — only types and methods that the
+// macOS / iOS app actually needs. Extend as the Swift app grows.
+//
+// Generate Swift bindings:
+//   cargo build -p noteagent-ffi --release
+//   cargo run -p noteagent-ffi --features cli --bin uniffi-bindgen -- \
+//       generate src/noteagent.udl --language swift --out-dir ./generated/swift
+
+namespace noteagent_ffi {
+    // Library version — handy for the Swift app's "About" screen.
+    string library_version();
+};
+
+[Error]
+enum FfiError {
+    "ModelLoad",
+    "Transcription",
+    "Io",
+    "InvalidArgument",
+};
+
+enum QualityPreset {
+    "Fast",
+    "Balanced",
+    "Accurate",
+};
+
+dictionary Segment {
+    double start;
+    double end;
+    string text;
+    float confidence;
+    string speaker;
+};
+
+dictionary Transcript {
+    sequence<Segment> segments;
+    string language;
+    string model;
+};
+
+interface WhisperTranscriber {
+    [Throws=FfiError]
+    constructor(string model_path, string model_id);
+
+    [Throws=FfiError]
+    Transcript transcribe_file(string audio_path, string? language, QualityPreset quality);
+
+    [Throws=FfiError]
+    sequence<Segment> transcribe_samples(
+        sequence<f32> samples,
+        double time_offset,
+        string? language,
+        QualityPreset quality
+    );
+
+    string model_id();
+};

@@ -1,0 +1,16 @@
+[package]
+name = "noteagent-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Python bindings (PyO3) for noteagent-core. Built via maturin into the `noteagent_audio` extension module consumed by the noteagent Python package."
+
+[lib]
+# Keep the extension-module name as `noteagent_audio` for backwards
+# compatibility with the existing Python import (`import noteagent_audio`).
+name = "noteagent_audio"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28", features = ["extension-module"] }
+noteagent-core = { path = "../noteagent-core" }
