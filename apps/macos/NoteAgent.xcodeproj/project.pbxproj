@@ -144,6 +144,7 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/scripts/build-bundle.sh",
+				"$(SRCROOT)/scripts/xcode-bundle-phase.sh",
 				"$(SRCROOT)/BuiltResources/python/bin/python3",
 				"$(SRCROOT)/BuiltResources/models/ggml-base.en.bin",
 			);
@@ -156,7 +157,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "set -euo pipefail\n\n# 1) Build (or refresh) the embedded Python + ggml model.\n#    Idempotent — subsequent builds skip when outputs are already current.\n\"$SRCROOT/scripts/build-bundle.sh\"\n\n# 2) Stage into the .app bundle. rsync --delete keeps stale files from\n#    accumulating across incremental builds.\nmkdir -p \"$CODESIGNING_FOLDER_PATH/Contents/Resources\"\nrsync -a --delete \"$SRCROOT/BuiltResources/python/\"  \"$CODESIGNING_FOLDER_PATH/Contents/Resources/python/\"\nrsync -a --delete \"$SRCROOT/BuiltResources/static/\"  \"$CODESIGNING_FOLDER_PATH/Contents/Resources/static/\"\nrsync -a --delete \"$SRCROOT/BuiltResources/models/\"  \"$CODESIGNING_FOLDER_PATH/Contents/Resources/models/\"\n";
+			shellScript = "exec \"$SRCROOT/scripts/xcode-bundle-phase.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
